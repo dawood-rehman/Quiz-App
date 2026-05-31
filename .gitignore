@@ -1,0 +1,107 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# -------------------------
+# Dependencies & packages
+# -------------------------
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# -------------------------
+# Test output & coverage
+# -------------------------
+/coverage
+/.nyc_output/
+.jest/
+.vitest/
+
+# -------------------------
+# Next.js build output
+# -------------------------
+/.next/
+/out/
+
+# -------------------------
+# Production build
+# -------------------------
+/build
+/dist
+
+# -------------------------
+# Misc
+# -------------------------
+.DS_Store
+*.pem
+
+# -------------------------
+# Logs
+# -------------------------
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -------------------------
+# Environment files
+# -------------------------
+# Ignore all .env files but keep the example template
+.env*
+!.env.example
+
+# Local overrides
+.env.local
+.env.*.local
+
+# -------------------------
+# Vercel
+# -------------------------
+.vercel
+
+# -------------------------
+# TypeScript
+# -------------------------
+*.tsbuildinfo
+next-env.d.ts
+
+# -------------------------
+# IDEs and editors
+# -------------------------
+.idea/
+.vscode/
+.history/
+
+# -------------------------
+# Build outputs & caches
+# -------------------------
+/dist/
+/build/
+.cache/
+tmp/
+*.tmp
+
+# -------------------------
+# Prisma & generated artifacts
+# -------------------------
+.prisma/
+
+# -------------------------
+# Next standalone output
+# -------------------------
+.next/standalone
+
+# -------------------------
+# Docker overrides and local compose
+# -------------------------
+docker-compose.override.yml
+
+# -------------------------
+# Linting / tooling cache
+# -------------------------
+.eslintcache
+

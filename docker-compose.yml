@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: quizforge
+      POSTGRES_PASSWORD: quizforge
+      POSTGRES_USER: quizforge
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quizforge -d quizforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - quizforge-postgres:/var/lib/postgresql/data
+
+volumes:
+  quizforge-postgres:
