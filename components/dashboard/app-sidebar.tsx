@@ -12,6 +12,7 @@ const learnerItems = [
   ["sparkles", "AI quiz studio", "/dashboard#studio"],
   ["chart", "My progress", "/dashboard#progress"],
   ["users", "Teams", "/teams"],
+  ["settings", "Settings", "/settings"],
 ] as const;
 
 export function AppSidebar({ admin = false }: { admin?: boolean }) {
@@ -23,6 +24,7 @@ export function AppSidebar({ admin = false }: { admin?: boolean }) {
         ["users", "Users", "/admin#users"],
         ["grid", "Quiz catalog", "/admin#quizzes"],
         ["activity", "Monitoring", "/admin#monitoring"],
+        ["settings", "Settings", "/settings"],
       ] as const
     : learnerItems;
 

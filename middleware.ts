@@ -23,7 +23,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/dashboard") ||
     request.nextUrl.pathname.startsWith("/admin") ||
     request.nextUrl.pathname.startsWith("/quiz") ||
-    request.nextUrl.pathname.startsWith("/teams");
+    request.nextUrl.pathname.startsWith("/teams") ||
+    request.nextUrl.pathname.startsWith("/settings");
   const isPublicAuthPage = publicAuthPages.has(request.nextUrl.pathname);
 
   if (!token) {
@@ -60,5 +61,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/quiz/:path*", "/teams/:path*", "/login", "/signup", "/forgot-password", "/reset-password"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/quiz/:path*", "/teams/:path*", "/settings/:path*", "/login", "/signup", "/forgot-password", "/reset-password"],
 };

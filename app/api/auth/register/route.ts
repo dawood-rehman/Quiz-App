@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message: emailDelivery === "provider"
-          ? "Account created. Check your email to verify your account."
+          ? `We sent a verification link to ${user.email}. Open it to verify your account before signing in.`
           : "Account created. Use the development verification link below to activate it.",
         verificationUrl: emailDelivery === "development" ? verifyUrl : undefined,
       },

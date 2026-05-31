@@ -25,3 +25,12 @@ export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(72),
   newPassword: passwordSchema,
 });
+
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(2).max(80).optional(),
+    email: emailSchema.optional(),
+  })
+  .refine((data) => data.name !== undefined || data.email !== undefined, {
+    message: "Provide a name or email address to update.",
+  });

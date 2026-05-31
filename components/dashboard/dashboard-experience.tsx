@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AccountActions } from "@/components/dashboard/account-actions";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/toast-provider";
 import { authenticatedFetch } from "@/lib/client/authenticated-fetch";
@@ -205,7 +206,6 @@ export function DashboardExperience() {
   }
 
   const firstName = user?.name.split(" ")[0] ?? "there";
-  const initials = user?.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() ?? "QF";
 
   return (
     <main className="app-layout" id="main-content">
@@ -213,7 +213,10 @@ export function DashboardExperience() {
       <section className="dashboard-main">
         <header className="dashboard-header">
           <div><p className="eyebrow">{today}</p><h1>Good morning, {firstName}.</h1><span>Small sessions. Serious momentum.</span></div>
-          <div className="dashboard-actions"><a aria-label="View quiz library" className="icon-button" href="#library"><Icon name="grid" /></a><button aria-label="Log out of QuizForge" className="profile-button" onClick={logOut}><span>{initials}</span><div><strong>{user?.name ?? "Your account"}</strong><small>Log out</small></div></button></div>
+          <div className="dashboard-actions">
+            <a aria-label="View quiz library" className="icon-button" href="#library"><Icon name="grid" /></a>
+            <AccountActions onLogout={logOut} user={user} />
+          </div>
         </header>
 
         <section className="welcome-panel">

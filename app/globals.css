@@ -218,10 +218,16 @@ h1, h2, h3, p { margin-top: 0; }
 .dashboard-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 26px; }
 .dashboard-header h1 { font-size: 27px; letter-spacing: -1.2px; margin-bottom: 4px; }
 .dashboard-header span { color: var(--muted); font-size: 12px; }
-.dashboard-actions { align-items: center; display: flex; gap: 12px; }
-.icon-button { align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); display: flex; height: 44px; justify-content: center; width: 44px; }
+.dashboard-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+.account-logout { min-height: 38px; white-space: nowrap; }
+.settings-grid { display: grid; gap: 22px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-card { padding: 24px; }
+.settings-form { margin-top: 8px; max-width: 420px; }
+.settings-back { margin-top: 18px; }
+.settings-back a { align-items: center; color: var(--mint-dark); display: inline-flex; font-size: 12px; font-weight: 700; gap: 6px; }
+.settings-back svg { transform: rotate(180deg); }
 .icon-button svg { height: 17px; width: 17px; }
-.profile-button { align-items: center; background: transparent; border: 0; display: flex; gap: 9px; text-align: left; }
+.profile-button, a.profile-button { align-items: center; background: transparent; border: 0; color: inherit; cursor: pointer; display: flex; gap: 9px; text-align: left; text-decoration: none; }
 .profile-button > span { align-items: center; background: var(--purple-soft); border-radius: 50%; color: var(--purple); display: flex; font-size: 10px; font-weight: 800; height: 44px; justify-content: center; width: 44px; }
 .profile-button div { display: grid; gap: 2px; }
 .profile-button strong { font-size: 11px; }
@@ -545,6 +551,8 @@ th { color: var(--muted); font-size: 9px; letter-spacing: .7px; text-transform: 
   .studio-form { grid-template-columns: 1fr; }
   .studio-invite-form, .team-search { grid-template-columns: 1fr; }
   .library-grid { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .account-logout { display: none; }
   .quiz-page { padding: 16px; }
   .quiz-topbar { margin-bottom: 18px; }
   .quiz-topbar .logo { font-size: 18px; }

@@ -50,12 +50,19 @@ export function AuthForm({ initialEmail, mode, notice, noticeTone = "success", t
         router.refresh();
       } else if (mode === "signup") {
         form.reset();
+        const email = typeof values.email === "string" ? values.email : "";
         toast({
-          action: body.verificationUrl ? { href: body.verificationUrl, label: "Verify development account" } : undefined,
-          message: body.message ?? "Account created. Check your email to verify your account.",
-          tone: "success",
+          action: body.verificationUrl ? { href: body.verificationUrl, label: "Open verification link" } : undefined,
+          duration: 12_000,
+          message: body.verificationUrl
+            ? "Account created. Use the verification link below to activate your account before signing in."
+            : `We sent a verification link to ${email || "your email"}. Open it to verify your account, then sign in.`,
+          title: "Check your email",
+          tone: "info",
         });
-        router.replace("/login");
+        window.setTimeout(() => {
+          router.replace(email ? `/login?registered=1&email=${encodeURIComponent(email)}` : "/login?registered=1");
+        }, body.verificationUrl ? 4000 : 2500);
       } else if (mode === "reset") {
         toast({ message: body.message ?? "Password reset. Log in with your new password.", tone: "success" });
         router.replace("/login");
