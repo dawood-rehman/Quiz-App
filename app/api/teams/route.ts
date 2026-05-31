@@ -21,7 +21,7 @@ export async function GET() {
       },
       orderBy: { updatedAt: "desc" },
     });
-    return NextResponse.json({ teams: teams.map((team) => ({ ...team, role: team.members[0]?.role })) });
+    return NextResponse.json({ teams: teams.map((team: { id: string; name: string; description: string | null; createdAt: Date; owner: { id: string; name: string }; members: { role: string }[]; _count: { challenges: number; members: number } }) => ({ ...team, role: team.members[0]?.role })) });
   } catch (error) {
     return jsonError(error);
   }

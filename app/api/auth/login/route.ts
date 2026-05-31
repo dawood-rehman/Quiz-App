@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     }
     if (user.status === "BANNED") throw new ApiError(403, "This account has been suspended.", "ACCOUNT_SUSPENDED");
     if (!user.emailVerifiedAt) throw new ApiError(403, "Verify your email before signing in.", "EMAIL_NOT_VERIFIED");
-    await autoAcceptPendingInvitations(user.id, user.email).catch((error) => {
+    await autoAcceptPendingInvitations(user.id, user.email).catch((error: unknown) => {
       console.error("Workspace invitation reconciliation failed during login", error);
     });
 

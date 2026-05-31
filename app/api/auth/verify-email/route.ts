@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     db.user.update({ where: { id: storedToken.userId }, data: { emailVerifiedAt: new Date() }, select: { email: true, id: true } }),
     db.verificationToken.deleteMany({ where: { userId: storedToken.userId, type: "EMAIL_VERIFICATION" } }),
   ]);
-  const acceptedWorkspaceInvitations = await autoAcceptPendingInvitations(user.id, user.email).catch((error) => {
+  const acceptedWorkspaceInvitations = await autoAcceptPendingInvitations(user.id, user.email).catch((error: unknown) => {
     console.error("Workspace invitation reconciliation failed after email verification", error);
     return 0;
   });

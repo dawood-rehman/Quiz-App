@@ -94,7 +94,7 @@ async function recordRequest(data: {
 }) {
   await db.aIRequest
     .create({ data: { ...data, feature: data.feature ?? "QUIZ_GENERATION" } })
-    .catch((error) => console.error("Failed to persist AI usage", error));
+    .catch((error: unknown) => console.error("Failed to persist AI usage", error));
 }
 
 export async function generateQuiz(input: QuizGenerationInput, userId: string) {

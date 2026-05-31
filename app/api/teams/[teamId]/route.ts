@@ -64,7 +64,18 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
     ]);
     if (!team) throw new ApiError(404, "Team not found.", "TEAM_NOT_FOUND");
 
-    const memberStats = new Map(team.members.map((member) => [member.user.id, {
+    type MemberStat = {
+      accuracy: number;
+      completed: number;
+      correct: number;
+      durationSeconds: number;
+      name: string;
+      streak: number;
+      total: number;
+      userId: string;
+    };
+
+    const memberStats = new Map<string, MemberStat>(team.members.map((member) => [member.user.id, {
       accuracy: 0,
       completed: 0,
       correct: 0,
@@ -74,8 +85,8 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
       total: 0,
       userId: member.user.id,
     }]));
-    const activity = team.challenges.flatMap((challenge) =>
-      challenge.attempts.map((attempt) => {
+    const activity = team.challenges.flatMap((challenge: { title: string; attempts: { user: { id: string; name: string }; completedAt: Date; durationSeconds: number; score: number; total: number }[] }) =>
+      challenge.attempts.map((attempt: { user: { id: string; name: string }; completedAt: Date; durationSeconds: number; score: number; total: number }) => {
         const stats = memberStats.get(attempt.user.id);
         if (stats) {
           stats.completed += 1;
@@ -91,18 +102,18 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
           total: attempt.total,
         };
       }),
-    ).sort((left, right) => right.completedAt.getTime() - left.completedAt.getTime());
+    ).sort((left: { completedAt: Date }, right: { completedAt: Date }) => right.completedAt.getTime() - left.completedAt.getTime());
     const rankings = [...memberStats.values()]
-      .map((entry) => ({
+      .map((entry: MemberStat) => ({
         ...entry,
         accuracy: entry.total ? Math.round((entry.correct / entry.total) * 100) : 0,
         rating: entry.correct * 10 + entry.completed * 20 + entry.streak * 15,
       }))
-      .sort((left, right) => right.rating - left.rating || right.accuracy - left.accuracy)
-      .map((entry, index) => ({ ...entry, rank: index + 1 }));
-    const totalAttempts = rankings.reduce((total, member) => total + member.completed, 0);
-    const totalQuestions = rankings.reduce((total, member) => total + member.total, 0);
-    const correctAnswers = rankings.reduce((total, member) => total + member.correct, 0);
+      .sort((left: MemberStat & { accuracy: number; rating: number }, right: MemberStat & { accuracy: number; rating: number }) => right.rating - left.rating || right.accuracy - left.accuracy)
+      .map((entry: MemberStat & { accuracy: number; rating: number }, index: number) => ({ ...entry, rank: index + 1 }));
+    const totalAttempts = rankings.reduce((total: number, member: MemberStat & { accuracy: number; rating: number; rank: number }) => total + member.completed, 0);
+    const totalQuestions = rankings.reduce((total: number, member: MemberStat & { accuracy: number; rating: number; rank: number }) => total + member.total, 0);
+    const correctAnswers = rankings.reduce((total: number, member: MemberStat & { accuracy: number; rating: number; rank: number }) => total + member.correct, 0);
 
     return NextResponse.json({
       team: {

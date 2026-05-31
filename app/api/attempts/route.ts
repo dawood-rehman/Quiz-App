@@ -32,18 +32,24 @@ export async function POST(request: Request) {
     });
     if (!quiz) throw new ApiError(404, "Quiz not found.", "QUIZ_NOT_FOUND");
 
-    const answersByQuestion = new Map(data.answers.map((answer) => [answer.questionId, answer.optionId]));
+    const answersByQuestion = new Map(data.answers.map((answer: { questionId: string; optionId: string }) => [answer.questionId, answer.optionId]));
     if (answersByQuestion.size !== quiz.questions.length) {
       throw new ApiError(422, "Answer every question before submitting.", "INCOMPLETE_ATTEMPT");
     }
 
-    const evaluated = quiz.questions.map((question) => {
+    type Evaluated = {
+      question: { id: string; prompt?: string; explanation?: string; options: { id: string; label: string; isCorrect: boolean }[] };
+      option: { id: string; label: string; isCorrect: boolean };
+      isCorrect: boolean;
+    };
+
+    const evaluated: Evaluated[] = quiz.questions.map((question: { id: string; prompt?: string; explanation?: string; options: { id: string; label: string; isCorrect: boolean }[] }) => {
       const optionId = answersByQuestion.get(question.id);
-      const option = question.options.find((candidate) => candidate.id === optionId);
+      const option = question.options.find((candidate: { id: string; label: string; isCorrect: boolean }) => candidate.id === optionId);
       if (!option) throw new ApiError(422, "An answer does not belong to this quiz.", "INVALID_ANSWER");
       return { question, option, isCorrect: option.isCorrect };
     });
-    const score = evaluated.filter((answer) => answer.isCorrect).length;
+    const score = evaluated.filter((answer: Evaluated) => answer.isCorrect).length;
 
     await db.quizAttempt.create({
       data: {
@@ -66,24 +72,24 @@ export async function POST(request: Request) {
     const baseReview = evaluated.map(({ question, option, isCorrect }) => ({
       questionId: question.id,
       selected: option.label,
-      correct: question.options.find((candidate) => candidate.isCorrect)?.label ?? "",
+      correct: question.options.find((candidate: { id: string; label: string; isCorrect: boolean }) => candidate.isCorrect)?.label ?? "",
       isCorrect,
-      explanation: question.explanation,
+      explanation: question.explanation ?? "",
     }));
     const evaluation = await evaluateQuizPerformance({
       topic: quiz.topic,
       score,
       total: quiz.questions.length,
-      answers: baseReview.map((answer) => ({
+      answers: baseReview.map((answer: { questionId: string; selected: string; correct: string; isCorrect: boolean; explanation: string }) => ({
         questionId: answer.questionId,
-        prompt: quiz.questions.find((question) => question.id === answer.questionId)?.prompt ?? "",
+        prompt: quiz.questions.find((question: { id: string; prompt?: string; options: { id: string }[] }) => question.id === answer.questionId)?.prompt ?? "",
         selected: answer.selected,
         correct: answer.correct,
         isCorrect: answer.isCorrect,
         baseExplanation: answer.explanation,
       })),
     }, user.id);
-    const explanationByQuestion = new Map(evaluation.explanations.map((entry) => [entry.questionId, entry.explanation]));
+    const explanationByQuestion = new Map(evaluation.explanations.map((entry: { questionId: string; explanation: string }) => [entry.questionId, entry.explanation]));
 
     return NextResponse.json({
       score,
@@ -93,7 +99,7 @@ export async function POST(request: Request) {
         longestStreak: progress.longestStreak,
       },
       feedback: { summary: evaluation.summary, suggestions: evaluation.suggestions },
-      review: baseReview.map((answer) => ({
+      review: baseReview.map((answer: { questionId: string; selected: string; correct: string; isCorrect: boolean; explanation: string }) => ({
         ...answer,
         explanation: explanationByQuestion.get(answer.questionId) ?? answer.explanation,
       })),
