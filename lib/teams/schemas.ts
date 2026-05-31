@@ -6,6 +6,8 @@ export const createTeamSchema = z.object({
   description: z.string().trim().max(240).optional(),
 });
 
+export const updateTeamSchema = createTeamSchema;
+
 export const inviteTeamMemberSchema = z.object({
   email: emailSchema,
   role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),

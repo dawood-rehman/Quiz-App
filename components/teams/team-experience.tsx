@@ -189,6 +189,53 @@ export function TeamExperience() {
     }
   }
 
+  async function updateWorkspace(event: FormEvent<HTMLFormElement>) {
+    if (!detail) return;
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    setBusy(true);
+    try {
+      const payload = await readJson<{ team: { id: string; name: string; description: string | null } }>(
+        await authenticatedFetch(`/api/teams/${detail.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: values.name,
+            description: values.description || undefined,
+          }),
+        }),
+        "Workspace could not be updated.",
+      );
+      await Promise.all([loadDetail(detail.id), loadTeams()]);
+      toast({ message: `"${payload.team.name}" was updated.`, tone: "success" });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "Workspace could not be updated.", tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteWorkspace() {
+    if (!detail) return;
+    if (!window.confirm(`Delete "${detail.name}"? This removes members, invitations, and challenges permanently.`)) return;
+    setBusy(true);
+    try {
+      await readJson(
+        await authenticatedFetch(`/api/teams/${detail.id}`, { method: "DELETE" }),
+        "Workspace could not be deleted.",
+      );
+      setSelectedTeamId("");
+      setDetail(undefined);
+      await loadTeams();
+      toast({ message: "Workspace deleted.", tone: "success" });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "Workspace could not be deleted.", tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!detail) return;
@@ -255,6 +302,45 @@ export function TeamExperience() {
                 <article><small>Submissions</small><strong>{detail.stats.submissions}</strong></article>
                 <article><small>Workspace accuracy</small><strong>{detail.stats.accuracy}%</strong></article>
               </section>
+
+              {detail.canManage && (
+                <section className="library-card workspace-settings-card">
+                  <div className="section-row">
+                    <div>
+                      <p className="eyebrow">Workspace settings</p>
+                      <h2>Update or delete workspace</h2>
+                    </div>
+                  </div>
+                  <form className="team-form workspace-settings-form" onSubmit={updateWorkspace}>
+                    <label>
+                      <span>Name</span>
+                      <input defaultValue={detail.name} key={`${detail.id}-name`} name="name" required />
+                    </label>
+                    <label>
+                      <span>Description</span>
+                      <input
+                        defaultValue={detail.description ?? ""}
+                        key={`${detail.id}-description`}
+                        name="description"
+                        placeholder="Optional workspace goal"
+                      />
+                    </label>
+                    <div className="workspace-settings-actions">
+                      <button className="button button-primary button-small" disabled={busy} type="submit">
+                        Save changes
+                      </button>
+                      <button
+                        className="button button-quiet button-small danger"
+                        disabled={busy}
+                        onClick={deleteWorkspace}
+                        type="button"
+                      >
+                        Delete workspace
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              )}
 
               {detail.canManage && <section className="library-card">
                 <div className="section-row"><div><p className="eyebrow">Workspace controls</p><h2>Invite collaborator by email</h2></div></div>

@@ -606,6 +606,10 @@ th { color: var(--muted); font-size: 9px; letter-spacing: .7px; text-transform: 
 .team-switcher strong { font-size: 12px; }
 .team-switcher small { color: var(--muted); font-size: 9px; }
 .team-form, .team-search, .team-challenge-form { display: grid; gap: 9px; margin-top: 12px; }
+.workspace-settings-form { max-width: 520px; }
+.workspace-settings-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.workspace-settings-actions .button.danger { border-color: #f2d4d4; color: #ad4242; }
+.workspace-settings-actions .button.danger:hover { background: #fff1f1; border-color: #e8b4b4; }
 .team-form label { color: var(--muted); display: grid; font-size: 10px; font-weight: 700; gap: 5px; }
 .team-form input, .team-search input, .team-search select, .team-challenge-form input, .team-challenge-form select, .workspace-member-list select { background: #fff; border: 1px solid #dfe5e3; border-radius: 9px; color: var(--ink); font-size: 11px; min-height: 42px; padding: 0 11px; width: 100%; }
 .team-search { grid-template-columns: minmax(0, 1fr) 105px auto; }

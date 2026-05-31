@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/lib/db";
-import { ApiError, jsonError } from "@/lib/http";
+import { ApiError, jsonError, parseJson } from "@/lib/http";
+import { assertTrustedOrigin } from "@/lib/security/csrf";
+import { requireWorkspaceManager } from "@/lib/teams/invitations";
+import { updateTeamSchema } from "@/lib/teams/schemas";
 
 export async function GET(_request: Request, context: { params: Promise<{ teamId: string }> }) {
   try {
@@ -132,6 +135,66 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
         quizzes,
       },
     });
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ teamId: string }> }) {
+  try {
+    assertTrustedOrigin(request);
+    const user = await requireUser();
+    const { teamId } = await context.params;
+    await requireWorkspaceManager(user.id, teamId);
+    const data = await parseJson(request, updateTeamSchema);
+
+    const team = await db.team.update({
+      where: { id: teamId },
+      data: {
+        name: data.name,
+        description: data.description?.trim() ? data.description : null,
+      },
+      select: { id: true, name: true, description: true },
+    });
+
+    await db.activityLog.create({
+      data: {
+        userId: user.id,
+        action: "TEAM_UPDATED",
+        entity: "Team",
+        entityId: team.id,
+        metadata: { name: team.name },
+      },
+    });
+
+    return NextResponse.json({ team });
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+export async function DELETE(_request: Request, context: { params: Promise<{ teamId: string }> }) {
+  try {
+    assertTrustedOrigin(_request);
+    const user = await requireUser();
+    const { teamId } = await context.params;
+    await requireWorkspaceManager(user.id, teamId);
+
+    const team = await db.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } });
+    if (!team) throw new ApiError(404, "Team not found.", "TEAM_NOT_FOUND");
+
+    await db.team.delete({ where: { id: teamId } });
+    await db.activityLog.create({
+      data: {
+        userId: user.id,
+        action: "TEAM_DELETED",
+        entity: "Team",
+        entityId: team.id,
+        metadata: { name: team.name },
+      },
+    });
+
+    return NextResponse.json({ message: "Workspace deleted." });
   } catch (error) {
     return jsonError(error);
   }
