@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { AccountActions } from "@/components/dashboard/account-actions";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { PageToolbar } from "@/components/dashboard/page-toolbar";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/toast-provider";
 import { authenticatedFetch } from "@/lib/client/authenticated-fetch";
@@ -193,30 +193,19 @@ export function DashboardExperience() {
     setCollaboratorUserIds((current) => current.includes(userId) ? current.filter((item) => item !== userId) : [...current, userId]);
   }
 
-  async function logOut() {
-    try {
-      const response = await fetch("/api/auth/logout", { method: "POST" });
-      if (!response.ok) throw new Error("You could not be logged out. Please try again.");
-      toast({ message: "You have been logged out securely.", tone: "success" });
-      router.replace("/");
-      router.refresh();
-    } catch (error) {
-      toast({ message: error instanceof Error ? error.message : "You could not be logged out. Please try again.", tone: "error" });
-    }
-  }
-
   const firstName = user?.name.split(" ")[0] ?? "there";
 
   return (
-    <main className="app-layout" id="main-content">
-      <AppSidebar />
+    <AppShell>
       <section className="dashboard-main">
-        <header className="dashboard-header">
-          <div><p className="eyebrow">{today}</p><h1>Good morning, {firstName}.</h1><span>Small sessions. Serious momentum.</span></div>
-          <div className="dashboard-actions">
-            <a aria-label="View quiz library" className="icon-button" href="#library"><Icon name="grid" /></a>
-            <AccountActions onLogout={logOut} user={user} />
-          </div>
+        <header className="dashboard-header dashboard-header-simple">
+          <PageToolbar>
+            <div className="dashboard-heading">
+              <p className="eyebrow">{today}</p>
+              <h1>Good morning, {firstName}.</h1>
+              <span>Small sessions. Serious momentum.</span>
+            </div>
+          </PageToolbar>
         </header>
 
         <section className="welcome-panel">
@@ -301,6 +290,6 @@ export function DashboardExperience() {
           </aside>
         </div>
       </section>
-    </main>
+    </AppShell>
   );
 }

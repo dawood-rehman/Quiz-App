@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { PageToolbar } from "@/components/dashboard/page-toolbar";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/toast-provider";
 import { authenticatedFetch } from "@/lib/client/authenticated-fetch";
@@ -211,12 +212,16 @@ export function TeamExperience() {
   }
 
   return (
-    <main className="app-layout" id="main-content">
-      <AppSidebar />
+    <AppShell>
       <section className="dashboard-main teams-main">
-        <header className="dashboard-header">
-          <div><p className="eyebrow"><Icon name="users" /> Workspace collaboration</p><h1>Workspaces and challenges</h1><span>Invite by email, collaborate on quizzes, and improve together.</span></div>
-          <Link className="button button-primary button-small" href="/dashboard"><Icon name="dashboard" /> Dashboard</Link>
+        <header className="dashboard-header dashboard-header-simple">
+          <PageToolbar>
+            <div className="dashboard-heading">
+              <p className="eyebrow"><Icon name="users" /> Workspace collaboration</p>
+              <h1>Workspaces and challenges</h1>
+              <span>Invite by email, collaborate on quizzes, and improve together.</span>
+            </div>
+          </PageToolbar>
         </header>
 
         {invitations.map((invitation) => <section className="team-invitation" key={invitation.id}><div><strong>{invitation.team.name}</strong><p>{invitation.invitedBy.name} invited you to join a workspace with {invitation.team._count.members} registered members.</p></div><div><button className="button button-primary button-small" disabled={busy} onClick={() => respond(invitation.id, "ACCEPT")}>Accept</button><button className="button button-quiet button-small" disabled={busy} onClick={() => respond(invitation.id, "DECLINE")}>Decline</button></div></section>)}
@@ -285,6 +290,6 @@ export function TeamExperience() {
           </section>
         </div>
       </section>
-    </main>
+    </AppShell>
   );
 }

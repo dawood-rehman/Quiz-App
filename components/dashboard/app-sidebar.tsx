@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAppShell } from "@/components/dashboard/app-shell";
 import { Icon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 
@@ -15,9 +16,28 @@ const learnerItems = [
   ["settings", "Settings", "/settings"],
 ] as const;
 
-export function AppSidebar({ admin = false }: { admin?: boolean }) {
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+export function AppSidebar({
+  admin = false,
+  onLogout,
+  user,
+}: {
+  admin?: boolean;
+  onLogout: () => void | Promise<void>;
+  user?: { name: string; email: string };
+}) {
   const pathname = usePathname();
+  const { closeMobileSidebar, collapsed, toggleSidebar } = useAppShell();
   const [hash, setHash] = useState("");
+
   const items = admin
     ? [
         ["dashboard", "Overview", "/admin"],
@@ -35,19 +55,94 @@ export function AppSidebar({ admin = false }: { admin?: boolean }) {
     return () => window.removeEventListener("hashchange", syncHash);
   }, []);
 
+  function handleNavClick() {
+    closeMobileSidebar();
+  }
+
   return (
-    <aside className="app-sidebar">
-      <Logo />
-      <nav aria-label={admin ? "Admin navigation" : "Learner navigation"}>
+    <aside aria-label={admin ? "Admin navigation" : "Learner navigation"} className="app-sidebar" id="app-sidebar">
+      <div className="sidebar-header">
+        <Logo />
+        <button
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="sidebar-collapse-toggle"
+          onClick={toggleSidebar}
+          type="button"
+        >
+          <Icon name="menu" />
+        </button>
+      </div>
+
+      {user && (
+        <Link
+          className="sidebar-account"
+          href="/settings"
+          onClick={handleNavClick}
+          title={collapsed ? user.name : undefined}
+        >
+          <span className="sidebar-account-avatar">{getInitials(user.name)}</span>
+          <span className="sidebar-account-copy">
+            <strong>{user.name}</strong>
+            <small>Account settings</small>
+          </span>
+        </Link>
+      )}
+
+      <nav>
         <p>{admin ? "Administration" : "Learn"}</p>
         {items.map(([icon, label, href]) => {
           const [itemPath, itemHash = ""] = href.split("#");
           const isActive = pathname === itemPath && hash === (itemHash ? `#${itemHash}` : "");
-          return <Link aria-current={isActive ? "page" : undefined} aria-label={label} className={isActive ? "active" : ""} href={href} key={label}><Icon name={icon} /><span>{label}</span></Link>;
+          return (
+            <Link
+              aria-current={isActive ? "page" : undefined}
+              className={isActive ? "active" : ""}
+              href={href}
+              key={label}
+              onClick={handleNavClick}
+              title={collapsed ? label : undefined}
+            >
+              <Icon name={icon} />
+              <span>{label}</span>
+            </Link>
+          );
         })}
       </nav>
-      {!admin && <div className="sidebar-upgrade"><Icon name="sparkles" /><strong>Keep your streak alive</strong><p>A ten-minute session is all it takes.</p><a href="#studio">Create a quiz</a></div>}
-      <Link aria-label={admin ? "Learner view" : "Back to site"} className="sidebar-bottom" href={admin ? "/dashboard" : "/"}><Icon name="arrow" /><span>{admin ? "Learner view" : "Back to site"}</span></Link>
+
+      {!admin && (
+        <div className="sidebar-upgrade">
+          <Icon name="sparkles" />
+          <strong>Keep your streak alive</strong>
+          <p>A ten-minute session is all it takes.</p>
+          <Link href="/dashboard#studio" onClick={handleNavClick}>
+            Create a quiz
+          </Link>
+        </div>
+      )}
+
+      <div className="sidebar-footer">
+        <Link
+          className="sidebar-bottom"
+          href={admin ? "/dashboard" : "/"}
+          onClick={handleNavClick}
+          title={collapsed ? (admin ? "Learner view" : "Back to site") : undefined}
+        >
+          <Icon name="arrow" />
+          <span>{admin ? "Learner view" : "Back to site"}</span>
+        </Link>
+        <button
+          className="sidebar-bottom sidebar-logout"
+          onClick={() => {
+            handleNavClick();
+            void onLogout();
+          }}
+          title={collapsed ? "Log out" : undefined}
+          type="button"
+        >
+          <Icon name="lock" />
+          <span>Log out</span>
+        </button>
+      </div>
     </aside>
   );
 }

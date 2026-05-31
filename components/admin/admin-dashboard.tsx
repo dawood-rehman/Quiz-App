@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { PageToolbar } from "@/components/dashboard/page-toolbar";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/toast-provider";
 import { authenticatedFetch } from "@/lib/client/authenticated-fetch";
@@ -102,12 +103,16 @@ export function AdminDashboard() {
   const successRequests = stats?.aiRequests.find((entry) => entry.status === "SUCCESS")?._count ?? 0;
 
   return (
-    <main className="app-layout" id="main-content">
-      <AppSidebar admin />
+    <AppShell admin>
       <section className="dashboard-main admin-main">
-        <header className="dashboard-header">
-          <div><p className="eyebrow">Operations center</p><h1>Platform overview</h1><span>Monitor learning activity, AI usage, and account health.</span></div>
-          <a className="button button-primary button-small" href="#quizzes"><Icon name="grid" /> Quiz catalog</a>
+        <header className="dashboard-header dashboard-header-simple">
+          <PageToolbar>
+            <div className="dashboard-heading">
+              <p className="eyebrow">Operations center</p>
+              <h1>Platform overview</h1>
+              <span>Monitor learning activity, AI usage, and account health.</span>
+            </div>
+          </PageToolbar>
         </header>
 
         <section className="metric-grid admin-metrics">
@@ -156,6 +161,6 @@ export function AdminDashboard() {
           </div>
         </section>
       </section>
-    </main>
+    </AppShell>
   );
 }

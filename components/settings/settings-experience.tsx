@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { AccountActions } from "@/components/dashboard/account-actions";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { PageToolbar } from "@/components/dashboard/page-toolbar";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/toast-provider";
 import { authenticatedFetch } from "@/lib/client/authenticated-fetch";
@@ -42,21 +42,6 @@ export function SettingsExperience() {
         });
       });
   }, [toast]);
-
-  async function logOut() {
-    try {
-      const response = await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-      if (!response.ok) throw new Error("You could not be logged out. Please try again.");
-      toast({ message: "You have been logged out securely.", tone: "success" });
-      router.replace("/");
-      router.refresh();
-    } catch (error) {
-      toast({
-        message: error instanceof Error ? error.message : "You could not be logged out. Please try again.",
-        tone: "error",
-      });
-    }
-  }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,18 +118,18 @@ export function SettingsExperience() {
   }
 
   return (
-    <main className="app-layout" id="main-content">
-      <AppSidebar />
+    <AppShell>
       <section className="dashboard-main settings-main">
-        <header className="dashboard-header">
-          <div>
-            <p className="eyebrow">
-              <Icon name="settings" /> Account
-            </p>
-            <h1>Settings</h1>
-            <span>Update your profile, email, and password.</span>
-          </div>
-          <AccountActions onLogout={logOut} user={profile} />
+        <header className="dashboard-header dashboard-header-simple">
+          <PageToolbar>
+            <div className="dashboard-heading">
+              <p className="eyebrow">
+                <Icon name="settings" /> Account
+              </p>
+              <h1>Settings</h1>
+              <span>Update your profile, email, and password.</span>
+            </div>
+          </PageToolbar>
         </header>
 
         <div className="settings-grid">
@@ -259,6 +244,6 @@ export function SettingsExperience() {
           </Link>
         </p>
       </section>
-    </main>
+    </AppShell>
   );
 }
