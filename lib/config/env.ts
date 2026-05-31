@@ -24,7 +24,19 @@ const envSchema = z.object({
   OPENROUTER_EVALUATION_TIMEOUT_MS: integerWithDefault(12_000, 3_000, 20_000),
   OPENROUTER_SITE_URL: optionalUrl,
   OPENROUTER_APP_NAME: stringWithDefault("QuizForge"),
-  RESEND_API_KEY: optionalString,
+  SMTP_HOST: optionalString,
+  SMTP_PORT: integerWithDefault(587, 1, 65_535),
+  SMTP_USER: optionalString,
+  SMTP_PASS: optionalString,
+  SMTP_SECURE: z.preprocess(
+    (value) => {
+      if (value === undefined || value === null || value === "") return undefined;
+      if (typeof value === "boolean") return value;
+      if (typeof value === "string") return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+      return undefined;
+    },
+    z.boolean().optional(),
+  ),
   EMAIL_FROM: stringWithDefault("QuizForge <no-reply@example.com>"),
 });
 
@@ -43,10 +55,6 @@ export function getEnv(): ServerEnv {
   if (parsed.data.NODE_ENV === "production") {
     if (!parsed.data.DATABASE_URL) throw new Error("DATABASE_URL is required in production.");
     if (!parsed.data.JWT_SECRET) throw new Error("JWT_SECRET is required in production.");
-    if (!parsed.data.RESEND_API_KEY) throw new Error("RESEND_API_KEY is required in production.");
-    if (/@(example\.com|resend\.dev)>?$/i.test(parsed.data.EMAIL_FROM.trim())) {
-      throw new Error("EMAIL_FROM must use a verified sender domain in production.");
-    }
   }
 
   cachedEnv = parsed.data;

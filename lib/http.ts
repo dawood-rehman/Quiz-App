@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import type { ZodError, ZodType } from "zod";
 
@@ -15,7 +16,65 @@ export function getClientIp(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 }
 
+export function mapKnownError(error: unknown): ApiError | undefined {
+  if (error instanceof ApiError) return error;
+
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    ["P1000", "P1001", "P1002", "P1017"].includes(error.code)
+  ) {
+    return new ApiError(503, "The database is unavailable right now. Please try again shortly.", "DATABASE_UNAVAILABLE");
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+    return new ApiError(
+      503,
+      "The application database is not fully initialized. Run migrations and try again.",
+      "DATABASE_SCHEMA_MISSING",
+    );
+  }
+
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return new ApiError(503, "The database is unavailable right now. Please try again shortly.", "DATABASE_UNAVAILABLE");
+  }
+
+  if (error instanceof Error) {
+    const message = error.message;
+    if (message.includes("DATABASE_URL is required")) {
+      return new ApiError(503, "Server configuration is incomplete (database).", "CONFIG_ERROR");
+    }
+    if (message.includes("JWT_SECRET is required") || message.includes("JWT_SECRET must contain")) {
+      return new ApiError(503, "Server configuration is incomplete (authentication).", "CONFIG_ERROR");
+    }
+    if (message.includes("Invalid environment configuration")) {
+      return new ApiError(503, "Server configuration is invalid.", "CONFIG_ERROR");
+    }
+    if (
+      message.includes("SMTP_") ||
+      message.includes("EMAIL_FROM") ||
+      message.includes("SMTP") ||
+      message.includes("verification email")
+    ) {
+      return new ApiError(
+        503,
+        "We could not send email right now. Check your email settings or try again later.",
+        "EMAIL_DELIVERY_FAILED",
+      );
+    }
+  }
+
+  return undefined;
+}
+
 export function jsonError(error: unknown) {
+  const mapped = mapKnownError(error);
+  if (mapped) {
+    return NextResponse.json(
+      { error: { code: mapped.code, message: mapped.message } },
+      { status: mapped.status },
+    );
+  }
+
   if (error instanceof ApiError) {
     return NextResponse.json(
       { error: { code: error.code, message: error.message } },

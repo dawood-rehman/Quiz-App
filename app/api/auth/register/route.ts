@@ -32,7 +32,9 @@ export async function POST(request: Request) {
         text: `Welcome to QuizForge. Verify your email address: ${verifyUrl}`,
       });
     } catch (error) {
-      await db.user.delete({ where: { id: user.id } });
+      await db.user.delete({ where: { id: user.id } }).catch((deleteError: unknown) => {
+        console.error("Failed to roll back user after email delivery failure", deleteError);
+      });
       throw error;
     }
     await db.activityLog.create({ data: { action: "USER_REGISTERED", entity: "User", entityId: user.id, userId: user.id } });

@@ -58,16 +58,20 @@ Quiz collaboration APIs support `MANAGER`, `EDITOR`, and `VIEWER` permissions fo
 
 ## Transactional Email
 
-Local development does not require email delivery. Leave `RESEND_API_KEY` empty or keep the placeholder `EMAIL_FROM` to log verification links and receive a signup verification action in the browser.
+Email is sent with [Nodemailer](https://nodemailer.com/) over SMTP. Local development can omit SMTP settings; verification and reset links are logged to the console.
 
-Before production, verify a domain or subdomain in Resend and set:
+Production example (Gmail with an app password):
 
 ```bash
-RESEND_API_KEY=re_replace_me
-EMAIL_FROM="QuizForge <no-reply@updates.your-domain.example>"
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=you@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM="QuizForge <you@gmail.com>"
 ```
 
-The sender domain must exactly match the domain or subdomain verified in Resend.
+Use your provider's SMTP host, port, and credentials for other services (Outlook, SendGrid SMTP, Brevo, etc.).
 
 ## Verification
 

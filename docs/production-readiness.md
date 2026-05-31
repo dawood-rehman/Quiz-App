@@ -43,7 +43,7 @@ This upgrade establishes a production-oriented foundation: typed Next.js App Rou
 
 - Implemented: registration, secure password hashing, email verification, login, access JWT, rotating refresh token, logout, forgot/reset password, change password, session listing, session revocation, protected pages, protected APIs, admin/user roles, account bans, and session invalidation on ban or password change.
 - Authorization is enforced in middleware for page navigation and again against current database state inside protected API handlers.
-- Transactional email uses a Resend-compatible HTTP API when configured. Development logs verification links when no provider key is present.
+- Transactional email uses Nodemailer over SMTP when configured. Development logs verification links when SMTP is unset.
 
 ### UI, UX, Accessibility, and SEO
 
@@ -88,7 +88,7 @@ Unknown email addresses receive an opaque, hashed-token invitation with a seven-
 - `JWT_SECRET` with at least 32 random characters
 - `APP_URL`
 - `OPENROUTER_API_KEY` for AI features
-- `RESEND_API_KEY` and `EMAIL_FROM` using the exact domain or subdomain verified in Resend for production account email
+- `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` for production account email
 
 ### Release Sequence
 

@@ -37,6 +37,7 @@ export function AuthForm({ initialEmail, mode, notice, noticeTone = "success", t
     try {
       const response = await fetch(`/api/auth/${endpoint}`, {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
