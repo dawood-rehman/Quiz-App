@@ -58,6 +58,12 @@ enum TeamChallengeStatus {
   CLOSED
 }
 
+enum TeamChallengeInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 enum QuizCollaboratorRole {
   MANAGER
   EDITOR
@@ -88,6 +94,8 @@ model User {
   teamInvitations   TeamInvitation[]    @relation("InvitationRecipient")
   sentInvitations   TeamInvitation[]    @relation("InvitationSender")
   createdChallenges TeamChallenge[]     @relation("ChallengeCreator")
+  challengeInvitations TeamChallengeInvitation[] @relation("ChallengeInvitationRecipient")
+  sentChallengeInvitations TeamChallengeInvitation[] @relation("ChallengeInvitationSender")
   quizCollaborations QuizCollaborator[]
 
   @@index([createdAt])
@@ -344,9 +352,26 @@ model TeamChallenge {
   createdById String
   createdBy   User                @relation("ChallengeCreator", fields: [createdById], references: [id], onDelete: Cascade)
   attempts    QuizAttempt[]
+  invitations TeamChallengeInvitation[]
 
   @@index([teamId, createdAt])
   @@index([quizId])
+}
+
+model TeamChallengeInvitation {
+  id          String                        @id @default(cuid())
+  status      TeamChallengeInvitationStatus @default(PENDING)
+  createdAt   DateTime                      @default(now())
+  respondedAt DateTime?
+  challengeId String
+  challenge   TeamChallenge                 @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User                          @relation("ChallengeInvitationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  invitedById String
+  invitedBy   User                          @relation("ChallengeInvitationSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([userId, status])
 }
 
 model QuizCollaborator {

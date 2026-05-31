@@ -18,6 +18,17 @@ export async function requireWorkspaceManager(userId: string, teamId: string) {
   return membership;
 }
 
+export async function requireWorkspaceOwner(userId: string, teamId: string) {
+  const membership = await db.teamMember.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    include: { team: true },
+  });
+  if (!membership || membership.role !== "OWNER") {
+    throw new ApiError(403, "Only the workspace owner can delete this workspace.", "FORBIDDEN");
+  }
+  return membership;
+}
+
 async function expirePendingInvitations(teamId?: string) {
   await db.teamInvitation.updateMany({
     where: { expiresAt: { lte: new Date() }, status: "PENDING", ...(teamId ? { teamId } : {}) },

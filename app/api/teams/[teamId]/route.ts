@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth/current-user";
 import { db } from "@/lib/db";
 import { ApiError, jsonError, parseJson } from "@/lib/http";
 import { assertTrustedOrigin } from "@/lib/security/csrf";
-import { requireWorkspaceManager } from "@/lib/teams/invitations";
+import { requireWorkspaceManager, requireWorkspaceOwner } from "@/lib/teams/invitations";
 import { updateTeamSchema } from "@/lib/teams/schemas";
 
 export async function GET(_request: Request, context: { params: Promise<{ teamId: string }> }) {
@@ -14,7 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
     if (!membership) throw new ApiError(403, "Join this team to view its dashboard.", "FORBIDDEN");
     const canManage = membership.role === "OWNER" || membership.role === "ADMIN";
 
-    const [team, quizzes] = await Promise.all([
+    const [team, quizzes, workspaceQuizzes, challengeInvitations] = await Promise.all([
       db.team.findUnique({
         where: { id: teamId },
         select: {
@@ -64,8 +64,24 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
             take: 50,
           })
         : Promise.resolve([]),
+      canManage
+        ? db.quiz.findMany({
+            where: { teamId },
+            select: { id: true, title: true, topic: true, status: true },
+            orderBy: { createdAt: "desc" },
+            take: 50,
+          })
+        : Promise.resolve([]),
+      db.teamChallengeInvitation.findMany({
+        where: { userId: user.id, challenge: { teamId } },
+        select: { challengeId: true, status: true },
+      }),
     ]);
     if (!team) throw new ApiError(404, "Team not found.", "TEAM_NOT_FOUND");
+
+    const invitationByChallenge = new Map(
+      challengeInvitations.map((invitation) => [invitation.challengeId, invitation.status]),
+    );
 
     type MemberStat = {
       accuracy: number;
@@ -123,6 +139,7 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
         ...team,
         invitations: "invitations" in team ? team.invitations : [],
         role: membership.role,
+        currentUserId: user.id,
         canManage,
         stats: {
           accuracy: totalQuestions ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
@@ -133,6 +150,11 @@ export async function GET(_request: Request, context: { params: Promise<{ teamId
         rankings,
         recentActivity: activity.slice(0, 8),
         quizzes,
+        workspaceQuizzes,
+        challenges: team.challenges.map((challenge) => ({
+          ...challenge,
+          invitationStatus: invitationByChallenge.get(challenge.id) ?? null,
+        })),
       },
     });
   } catch (error) {
@@ -178,7 +200,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ tea
     assertTrustedOrigin(_request);
     const user = await requireUser();
     const { teamId } = await context.params;
-    await requireWorkspaceManager(user.id, teamId);
+    await requireWorkspaceOwner(user.id, teamId);
 
     const team = await db.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } });
     if (!team) throw new ApiError(404, "Team not found.", "TEAM_NOT_FOUND");

@@ -363,8 +363,7 @@ h1, h2, h3, p { margin-top: 0; }
 .app-layout.sidebar-collapsed .sidebar-nav-item { justify-content: center; padding-inline: 10px; }
 .app-layout.sidebar-collapsed .sidebar-user { justify-content: center; padding-inline: 4px; }
 .app-layout.sidebar-collapsed .sidebar-header { justify-content: center; }
-.app-layout.sidebar-collapsed .sidebar-header .logo { justify-content: center; min-width: 0; }
-.app-layout.sidebar-collapsed .sidebar-header .logo > span:last-child { display: none; }
+.app-layout.sidebar-collapsed .sidebar-header .logo { display: none; }
 .page-toolbar {
   align-items: flex-start;
   display: flex;
@@ -626,6 +625,11 @@ th { color: var(--muted); font-size: 9px; letter-spacing: .7px; text-transform: 
 .workspace-member-list strong { font-size: 11px; }
 .workspace-member-list small { color: var(--muted); font-size: 10px; }
 .workspace-member-list select { min-height: 34px; padding: 0 8px; width: 92px; }
+.workspace-quiz-list { display: grid; gap: 8px; margin-top: 12px; }
+.workspace-quiz-list article { align-items: center; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: space-between; padding-top: 8px; }
+.workspace-quiz-list article > div { display: grid; gap: 3px; }
+.workspace-quiz-list strong { font-size: 11px; }
+.workspace-quiz-list small { color: var(--muted); font-size: 10px; }
 .danger { color: #ad4242; }
 .team-hero { align-items: flex-start; background: linear-gradient(120deg, #def4ee, #eef2ff); border-radius: var(--radius-md); display: flex; justify-content: space-between; padding: 24px; }
 .team-hero h2 { font-size: 29px; letter-spacing: -1.2px; margin-bottom: 7px; }

@@ -23,7 +23,19 @@ type Invitation = {
   team: { id: string; name: string; description?: string | null; _count: { members: number } };
 };
 
+type ChallengeInvitation = {
+  id: string;
+  invitedBy: { name: string };
+  challenge: {
+    id: string;
+    title: string;
+    team: { id: string; name: string };
+    quiz: { id: string; title: string; topic: string };
+  };
+};
+
 type TeamDetail = TeamSummary & {
+  currentUserId: string;
   canManage: boolean;
   stats: { accuracy: number; challenges: number; members: number; submissions: number };
   members: Array<{ id: string; role: "OWNER" | "ADMIN" | "MEMBER"; user: { id: string; email: string; name: string } }>;
@@ -31,11 +43,13 @@ type TeamDetail = TeamSummary & {
   rankings: Array<{ userId: string; name: string; rank: number; rating: number; accuracy: number; completed: number; streak: number }>;
   recentActivity: Array<{ challengeTitle: string; completedAt: string; name: string; score: number; total: number }>;
   quizzes: Array<{ id: string; title: string; topic: string }>;
+  workspaceQuizzes: Array<{ id: string; title: string; topic: string; status: string }>;
   challenges: Array<{
     id: string;
     title: string;
     status: "OPEN" | "CLOSED";
     deadline?: string | null;
+    invitationStatus: "PENDING" | "ACCEPTED" | "DECLINED" | null;
     attempts: unknown[];
     quiz: { id: string; title: string; topic: string; _count: { questions: number } };
   }>;
@@ -51,17 +65,21 @@ export function TeamExperience() {
   const { toast } = useToast();
   const [teams, setTeams] = useState<TeamSummary[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [challengeInvitations, setChallengeInvitations] = useState<ChallengeInvitation[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [detail, setDetail] = useState<TeamDetail>();
   const [busy, setBusy] = useState(false);
+  const [challengeCollaborators, setChallengeCollaborators] = useState<string[]>([]);
 
   const loadTeams = useCallback(async () => {
-    const [teamsPayload, invitationsPayload] = await Promise.all([
+    const [teamsPayload, invitationsPayload, challengeInvitationsPayload] = await Promise.all([
       readJson<{ teams: TeamSummary[] }>(await authenticatedFetch("/api/teams"), "Teams could not be loaded."),
       readJson<{ invitations: Invitation[] }>(await authenticatedFetch("/api/teams/invitations"), "Team invitations could not be loaded."),
+      readJson<{ invitations: ChallengeInvitation[] }>(await authenticatedFetch("/api/teams/challenges/invitations"), "Challenge invitations could not be loaded."),
     ]);
     setTeams(teamsPayload.teams);
     setInvitations(invitationsPayload.invitations);
+    setChallengeInvitations(challengeInvitationsPayload.invitations);
     setSelectedTeamId((current) => current || teamsPayload.teams[0]?.id || "");
   }, []);
 
@@ -82,6 +100,15 @@ export function TeamExperience() {
     loadDetail(selectedTeamId).catch((error) => toast({ message: error instanceof Error ? error.message : "Team dashboard could not be loaded.", tone: "error" }));
   }, [loadDetail, selectedTeamId, toast]);
 
+  useEffect(() => {
+    if (!detail) return;
+    setChallengeCollaborators(
+      detail.members
+        .filter((member) => member.user.id !== detail.currentUserId)
+        .map((member) => member.user.id),
+    );
+  }, [detail]);
+
   async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formEl = event.currentTarget as HTMLFormElement;
@@ -99,6 +126,46 @@ export function TeamExperience() {
       toast({ message: "Workspace created. You can now invite collaborators by email.", tone: "success" });
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : "Team could not be created.", tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function respondToChallengeInvitation(invitationId: string, action: "ACCEPT" | "DECLINE") {
+    setBusy(true);
+    try {
+      await readJson(await authenticatedFetch(`/api/teams/challenges/invitations/${invitationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      }), "Challenge invitation could not be updated.");
+      await Promise.all([loadTeams(), loadDetail(selectedTeamId)]);
+      toast({
+        message: action === "ACCEPT" ? "Challenge invitation accepted. You can take the quiz now." : "Challenge invitation declined.",
+        tone: "success",
+      });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "Challenge invitation could not be updated.", tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function leaveWorkspace() {
+    if (!detail) return;
+    if (!window.confirm(`Leave "${detail.name}"? You will need a new invitation to rejoin.`)) return;
+    setBusy(true);
+    try {
+      await readJson(
+        await authenticatedFetch(`/api/teams/${detail.id}/leave`, { method: "POST" }),
+        "Could not leave workspace.",
+      );
+      setSelectedTeamId("");
+      setDetail(undefined);
+      await loadTeams();
+      toast({ message: "You left the workspace.", tone: "success" });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "Could not leave workspace.", tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -236,9 +303,31 @@ export function TeamExperience() {
     }
   }
 
+  async function deleteQuiz(quizId: string, title: string) {
+    if (!detail) return;
+    if (!window.confirm(`Delete "${title}" from this workspace? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      await readJson(
+        await authenticatedFetch(`/api/quizzes/${quizId}`, { method: "DELETE" }),
+        "Quiz could not be deleted.",
+      );
+      await loadDetail(detail.id);
+      toast({ message: "Workspace quiz deleted.", tone: "success" });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : "Quiz could not be deleted.", tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function createChallenge(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!detail) return;
+    if (!challengeCollaborators.length) {
+      toast({ message: "Select at least one collaborator for this challenge.", tone: "error" });
+      return;
+    }
     const formEl = event.currentTarget as HTMLFormElement;
     const form = new FormData(formEl);
     setBusy(true);
@@ -246,7 +335,11 @@ export function TeamExperience() {
       await readJson(await authenticatedFetch(`/api/teams/${detail.id}/challenges`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quizId: form.get("quizId"), title: form.get("title") }),
+        body: JSON.stringify({
+          quizId: form.get("quizId"),
+          title: form.get("title"),
+          collaboratorUserIds: challengeCollaborators,
+        }),
       }), "Challenge could not be created.");
       formEl.reset();
       await loadDetail(detail.id);
@@ -272,6 +365,21 @@ export function TeamExperience() {
         </header>
 
         {invitations.map((invitation) => <section className="team-invitation" key={invitation.id}><div><strong>{invitation.team.name}</strong><p>{invitation.invitedBy.name} invited you to join a workspace with {invitation.team._count.members} registered members.</p></div><div><button className="button button-primary button-small" disabled={busy} onClick={() => respond(invitation.id, "ACCEPT")}>Accept</button><button className="button button-quiet button-small" disabled={busy} onClick={() => respond(invitation.id, "DECLINE")}>Decline</button></div></section>)}
+
+        {challengeInvitations.map((invitation) => (
+          <section className="team-invitation challenge-invitation" key={invitation.id}>
+            <div>
+              <strong>{invitation.challenge.title}</strong>
+              <p>
+                {invitation.invitedBy.name} invited you to a challenge in {invitation.challenge.team.name} ({invitation.challenge.quiz.title}).
+              </p>
+            </div>
+            <div>
+              <button className="button button-primary button-small" disabled={busy} onClick={() => respondToChallengeInvitation(invitation.id, "ACCEPT")} type="button">Accept</button>
+              <button className="button button-quiet button-small" disabled={busy} onClick={() => respondToChallengeInvitation(invitation.id, "DECLINE")} type="button">Decline</button>
+            </div>
+          </section>
+        ))}
 
         <div className="teams-layout">
           <aside className="teams-sidebar">
@@ -329,16 +437,68 @@ export function TeamExperience() {
                       <button className="button button-primary button-small" disabled={busy} type="submit">
                         Save changes
                       </button>
-                      <button
-                        className="button button-quiet button-small danger"
-                        disabled={busy}
-                        onClick={deleteWorkspace}
-                        type="button"
-                      >
-                        Delete workspace
-                      </button>
+                      {detail.role === "OWNER" && (
+                        <button
+                          className="button button-quiet button-small danger"
+                          disabled={busy}
+                          onClick={deleteWorkspace}
+                          type="button"
+                        >
+                          Delete workspace
+                        </button>
+                      )}
                     </div>
                   </form>
+                </section>
+              )}
+
+              <section className="library-card workspace-leave-card">
+                <div className="section-row">
+                  <div>
+                    <p className="eyebrow">Membership</p>
+                    <h2>Leave workspace</h2>
+                  </div>
+                </div>
+                <p className="empty-copy">
+                  {detail.role === "OWNER"
+                    ? "Leaving transfers ownership to another admin or member. If you are the only member, delete the workspace instead."
+                    : "Remove yourself from this workspace. You can be invited again later."}
+                </p>
+                <button className="button button-quiet button-small danger" disabled={busy} onClick={leaveWorkspace} type="button">
+                  Leave workspace
+                </button>
+              </section>
+
+              {detail.canManage && (
+                <section className="library-card">
+                  <div className="section-row">
+                    <div>
+                      <p className="eyebrow">Workspace library</p>
+                      <h2>Workspace quizzes</h2>
+                    </div>
+                    <span className="select-pill">{detail.workspaceQuizzes.length} total</span>
+                  </div>
+                  <div className="workspace-quiz-list">
+                    {detail.workspaceQuizzes.map((quiz) => (
+                      <article key={quiz.id}>
+                        <div>
+                          <strong>{quiz.title}</strong>
+                          <small>{quiz.topic} - {quiz.status.toLowerCase()}</small>
+                        </div>
+                        <button
+                          className="table-link danger"
+                          disabled={busy}
+                          onClick={() => deleteQuiz(quiz.id, quiz.title)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </article>
+                    ))}
+                    {!detail.workspaceQuizzes.length && (
+                      <p className="empty-copy">Workspace quizzes created from the dashboard will appear here.</p>
+                    )}
+                  </div>
                 </section>
               )}
 
@@ -353,14 +513,55 @@ export function TeamExperience() {
                 <form className="team-challenge-form" onSubmit={createChallenge}>
                   <input name="title" placeholder="Challenge title" required />
                   <select name="quizId" required><option value="">Choose a saved quiz</option>{detail.quizzes.map((quiz) => <option key={quiz.id} value={quiz.id}>{quiz.title} - {quiz.topic}</option>)}</select>
-                  <button className="button button-primary button-small" disabled={busy || !detail.quizzes.length}>Publish</button>
+                  <fieldset className="challenge-collaborator-picker">
+                    <legend>Invite collaborators</legend>
+                    {detail.members
+                      .filter((member) => member.user.id !== detail.currentUserId)
+                      .map((member) => (
+                        <label key={member.user.id}>
+                          <input
+                            checked={challengeCollaborators.includes(member.user.id)}
+                            disabled={busy}
+                            onChange={(event) => {
+                              setChallengeCollaborators((current) =>
+                                event.target.checked
+                                  ? [...current, member.user.id]
+                                  : current.filter((id) => id !== member.user.id),
+                              );
+                            }}
+                            type="checkbox"
+                          />
+                          {member.user.name} ({member.role.toLowerCase()})
+                        </label>
+                      ))}
+                  </fieldset>
+                  <button className="button button-primary button-small" disabled={busy || !detail.quizzes.length || !challengeCollaborators.length}>Publish</button>
                 </form>
                 {!detail.quizzes.length && <p className="empty-copy">Generate a quiz from your dashboard before publishing a challenge.</p>}
               </section>}
 
               <section className="library-card">
                 <div className="section-row"><div><p className="eyebrow">Compete together</p><h2>Challenge history</h2></div><span className="select-pill">{detail.challenges.length} total</span></div>
-                <div className="challenge-list">{detail.challenges.map((challenge) => <article key={challenge.id}><div><strong>{challenge.title}</strong><small>{challenge.quiz.topic} - {challenge.quiz._count.questions} questions - {challenge.attempts.length} submissions</small></div><Link className="button button-primary button-small" href={`/quiz/${challenge.quiz.id}?challenge=${challenge.id}`}>Take quiz <Icon name="arrow" /></Link></article>)}{!detail.challenges.length && <p className="empty-copy">No challenge has been published yet.</p>}</div>
+                <div className="challenge-list">{detail.challenges.map((challenge) => (
+                  <article key={challenge.id}>
+                    <div>
+                      <strong>{challenge.title}</strong>
+                      <small>{challenge.quiz.topic} - {challenge.quiz._count.questions} questions - {challenge.attempts.length} submissions</small>
+                    </div>
+                    {challenge.invitationStatus === "PENDING" && (
+                      <span className="status-pill draft">Invitation pending</span>
+                    )}
+                    {challenge.invitationStatus === "DECLINED" && (
+                      <span className="status-pill draft">Declined</span>
+                    )}
+                    {challenge.invitationStatus === "ACCEPTED" && (
+                      <Link className="button button-primary button-small" href={`/quiz/${challenge.quiz.id}?challenge=${challenge.id}`}>Take quiz <Icon name="arrow" /></Link>
+                    )}
+                    {!challenge.invitationStatus && detail.canManage && (
+                      <span className="status-pill published">Published</span>
+                    )}
+                  </article>
+                ))}{!detail.challenges.length && <p className="empty-copy">No challenge has been published yet.</p>}</div>
               </section>
 
               <section className="library-card">

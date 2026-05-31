@@ -23,7 +23,10 @@ export const createTeamChallengeSchema = z.object({
   quizId: z.string().cuid(),
   title: z.string().trim().min(3).max(100),
   deadline: z.iso.datetime().optional(),
+  collaboratorUserIds: z.array(z.string().cuid()).min(1, "Select at least one collaborator."),
 });
+
+export const respondToChallengeInvitationSchema = respondToInvitationSchema;
 
 export const updateTeamMemberSchema = z.object({
   role: z.enum(["ADMIN", "MEMBER"]),

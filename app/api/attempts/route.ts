@@ -6,6 +6,7 @@ import { submitAttemptSchema } from "@/lib/quiz/schemas";
 import { assertTrustedOrigin } from "@/lib/security/csrf";
 import { recordActivityDay } from "@/lib/analytics/progress";
 import { evaluateQuizPerformance } from "@/lib/ai/openrouter";
+import { requireAcceptedChallengeInvitation } from "@/lib/teams/challenge-invitations";
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
       : undefined;
     if (data.teamChallengeId && !challenge) {
       throw new ApiError(403, "This team challenge is unavailable or you are not a member.", "CHALLENGE_UNAVAILABLE");
+    }
+    if (data.teamChallengeId) {
+      await requireAcceptedChallengeInvitation(user.id, data.teamChallengeId);
     }
     const quiz = await db.quiz.findFirst({
       where: { id: data.quizId, status: "PUBLISHED" },

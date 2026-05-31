@@ -44,6 +44,27 @@ export async function requireQuizManager(userId: string, quizId: string) {
   return quiz;
 }
 
+export async function requireWorkspaceQuizDeletion(userId: string, quizId: string) {
+  const quiz = await db.quiz.findUnique({
+    where: { id: quizId },
+    select: { id: true, teamId: true, title: true },
+  });
+  if (!quiz) throw new ApiError(404, "Quiz not found.", "QUIZ_NOT_FOUND");
+  if (!quiz.teamId) {
+    throw new ApiError(422, "Only workspace quizzes can be deleted from a team.", "WORKSPACE_REQUIRED");
+  }
+
+  const membership = await db.teamMember.findUnique({
+    where: { teamId_userId: { teamId: quiz.teamId, userId } },
+    select: { role: true },
+  });
+  if (!membership || (membership.role !== "OWNER" && membership.role !== "ADMIN")) {
+    throw new ApiError(403, "Only workspace owners and admins can delete workspace quizzes.", "FORBIDDEN");
+  }
+
+  return quiz;
+}
+
 export async function replaceQuizCollaborators(
   quizId: string,
   collaborators: Array<{ role: QuizCollaboratorRole; userId: string }>,
